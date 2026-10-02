@@ -1,11 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:16-alpine'
-            // Added -u root so the agent container has permission to access docker.sock
-            args '-u root -v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
-        }
-    }
+    agent none
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials-id')
@@ -14,6 +8,9 @@ pipeline {
 
     stages {
         stage('Install Dependencies') {
+            agent {
+                docker { image 'node:16-alpine' }
+            }
             steps {
                 echo 'Installing Node.js dependencies...'
                 sh 'npm ci'
@@ -21,6 +18,9 @@ pipeline {
         }
 
         stage('Run Unit Tests') {
+            agent {
+                docker { image 'node:16-alpine' }
+            }
             steps {
                 echo 'Running test suite...'
                 sh 'npm test --if-present'
@@ -28,14 +28,18 @@ pipeline {
         }
 
         stage('Security Vulnerability Scan') {
+            agent {
+                docker { image 'node:16-alpine' }
+            }
             steps {
                 echo 'Executing dependency audit...'
-                // Security Gate: Fails the pipeline if High or Critical vulnerabilities exist
+                // Security Gate: Fails pipeline if High or Critical issues are detected
                 sh 'npm audit --audit-level=high'
             }
         }
 
         stage('Build Docker Image') {
+            agent any
             steps {
                 echo 'Building Docker container image...'
                 sh "docker build -t ${APP_IMAGE}:${BUILD_NUMBER} ."
@@ -44,6 +48,7 @@ pipeline {
         }
 
         stage('Publish to Container Registry') {
+            agent any
             steps {
                 echo 'Authenticating and pushing image to Docker Hub...'
                 sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
