@@ -7,11 +7,20 @@ pipeline {
     }
 
     stages {
+        stage('Checkout & Stash') {
+            agent any
+            steps {
+                checkout scm
+                stash name: 'workspace-files', includes: '**/*'
+            }
+        }
+
         stage('Install Dependencies') {
             agent {
                 docker { image 'node:16-alpine' }
             }
             steps {
+                unstash 'workspace-files'
                 echo 'Installing Node.js dependencies...'
                 sh 'npm ci'
             }
@@ -22,6 +31,7 @@ pipeline {
                 docker { image 'node:16-alpine' }
             }
             steps {
+                unstash 'workspace-files'
                 echo 'Running test suite...'
                 sh 'npm test --if-present'
             }
@@ -32,8 +42,8 @@ pipeline {
                 docker { image 'node:16-alpine' }
             }
             steps {
+                unstash 'workspace-files'
                 echo 'Executing dependency audit...'
-                // Security Gate: Fails pipeline if High or Critical issues are detected
                 sh 'npm audit --audit-level=high'
             }
         }
@@ -41,6 +51,7 @@ pipeline {
         stage('Build Docker Image') {
             agent any
             steps {
+                unstash 'workspace-files'
                 echo 'Building Docker container image...'
                 sh "docker build -t ${APP_IMAGE}:${BUILD_NUMBER} ."
                 sh "docker tag ${APP_IMAGE}:${BUILD_NUMBER} ${APP_IMAGE}:latest"
@@ -60,8 +71,10 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up registry credentials...'
-            sh 'docker logout || true'
+            node {
+                echo 'Cleaning up registry credentials...'
+                sh 'docker logout || true'
+            }
         }
         success {
             echo 'Pipeline completed successfully!'
