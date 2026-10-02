@@ -2,7 +2,8 @@ pipeline {
     agent {
         docker {
             image 'node:16-alpine'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
+           // Mount docker.sock AND the docker binary so Node container can run 'docker'
+            args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
         }
     }
 
