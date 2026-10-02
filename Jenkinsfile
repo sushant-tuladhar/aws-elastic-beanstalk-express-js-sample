@@ -2,8 +2,8 @@ pipeline {
     agent {
         docker {
             image 'node:16-alpine'
-           // Mount docker.sock AND the docker binary so Node container can run 'docker'
-            args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
+            // Added -u root so the agent container has permission to access docker.sock
+            args '-u root -v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
         }
     }
 
