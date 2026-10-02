@@ -52,7 +52,7 @@ pipeline {
             agent any
             steps {
                 unstash 'workspace-files'
-                echo 'Building Docker container image...'
+                echo 'Building Docker application image...'
                 sh "docker build -t ${APP_IMAGE}:${BUILD_NUMBER} ."
                 sh "docker tag ${APP_IMAGE}:${BUILD_NUMBER} ${APP_IMAGE}:latest"
             }
@@ -71,9 +71,11 @@ pipeline {
 
     post {
         always {
-            node {
-                echo 'Cleaning up registry credentials...'
-                sh 'docker logout || true'
+            script {
+                node('') {
+                    echo 'Cleaning up registry credentials...'
+                    sh 'docker logout || true'
+                }
             }
         }
         success {
